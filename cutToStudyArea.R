@@ -33,7 +33,7 @@ for(thisYear in 1997:2010){
   stacked=crop(stacked, studyAreaOutline)
   
   
-  addedTogether=overlay(stacked, fun=addRasters
+  addedTogether=overlay(stacked, fun=addRasters)
   
   newPath=paste(newLocation,'mpb_',thisYear,'.tif',sep='')
   writeRaster(addedTogether, newPath)
