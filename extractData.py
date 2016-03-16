@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import gdalnumeric
 
 
@@ -15,12 +16,12 @@ def extractValue(stack,x,y,t, n):
     focalPixel_t=stack[x,y,t]
     focalPixel_t1=stack[x,y,t+1]
 
-    if n==4:
+    if n==8:
         surrounding=stack[x-1:x+2 , y-1:y+2, t].reshape((9))
         #Delete the focal pixel that is in this 3x3 array
         surrounding=np.delete(surrounding, 4)
-    elif n==8:
-        raise Exception('Not doing 8 surroundign pixelsyet')
+    elif n==4:
+        raise Exception('Not doing 8 surrounding pixels yet')
         #surrounding=imageStack[x-1:x+2 , y-1:y+2, t].reshape((9))
 
     return(focalPixel_t, focalPixel_t1, surrounding)
@@ -64,8 +65,30 @@ treeCoverBins=np.array([0, 25, 50, 75, 110])
 treeCover=np.digitize(treeCover, treeCoverBins)
 
 #Extract all values
+count=0
+data=[]
 for row in range(1, imageStack.shape[0]-1):
     for col in range(1, imageStack.shape[1]-1):
-        for time in range(0, imageStack.shape[2]-1):
-            t1, t, surr=extractValue(imageStack, row, col, time, 4)
+        #First get the base tree cover for this pixel
+        thisPixelTreeCover=treeCover[row,col]
 
+        for time in range(0, imageStack.shape[2]-1):
+            dataThisObs={}
+            t, t1, surrounding=extractValue(imageStack, row, col, time, 8)
+            
+            dataThisObs['t']=t
+            dataThisObs['t1']=t1
+            dataThisObs['treeCover']=thisPixelTreeCover
+
+            #Process the surrounding pixel data as fraction in each of the 5 tree death number catagories
+            surroundingSize=len(surrounding)
+            for catagory in [1,2,3,4,5]:
+                dataThisObs['Surrounding-Cat'+str(catagory)]= np.sum(surrounding==catagory) / surroundingSize
+
+            data.append(dataThisObs)
+            #count+=1
+            #if count>=500:
+            #    exit()
+
+data=pd.DataFrame(data)
+data.to_csv('bbCleanedData.csv', index=False)
