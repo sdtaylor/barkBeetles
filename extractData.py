@@ -3,8 +3,8 @@ import pandas as pd
 import gdalnumeric
 
 
+#Read in all rasters and stack them into a single array. (rows x column x numRasters)
 def stackImages(fileList):
-    #Read in all rasters and stack them into a single array. (rows x column x numRasters)
     fullYear=gdalnumeric.LoadFile(fileList[0])
     for thisImage in fileList[1:]:
         image=gdalnumeric.LoadFile(thisImage)
@@ -21,7 +21,7 @@ def extractValue(stack,x,y,t, n):
         #Delete the focal pixel that is in this 3x3 array
         surrounding=np.delete(surrounding, 4)
     elif n==4:
-        raise Exception('Not doing 8 surrounding pixels yet')
+        raise Exception('Not doing 4 surrounding pixels yet')
         #surrounding=imageStack[x-1:x+2 , y-1:y+2, t].reshape((9))
 
     return(focalPixel_t, focalPixel_t1, surrounding)
@@ -75,7 +75,7 @@ for row in range(1, imageStack.shape[0]-1):
         for time in range(0, imageStack.shape[2]-1):
             dataThisObs={}
             t, t1, surrounding=extractValue(imageStack, row, col, time, 8)
-            
+
             dataThisObs['t']=t
             dataThisObs['t1']=t1
             dataThisObs['treeCover']=thisPixelTreeCover
