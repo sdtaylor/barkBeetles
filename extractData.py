@@ -37,10 +37,10 @@ imageStack=stackImages(bbFiles)
 
 #number of dead trees can decrease over time because surveyers technically only count
 #dieing trees (beetle kill red stage), and not trees several years dead. For the model I'll make it
-#so the number of dead tress climbs but never goes down. 
+#so the number of dead at any time period = sum of the dead trees in all prior years
 for time in range(1,imageStack.shape[2]):
-    #Value of each pixel = max value of all prior years (or that current years)
-    imageStack[:,:,time]=imageStack[:,:,0:time+1].max(axis=2)
+    #Value of each pixel = sum of that year plus the prior year
+    imageStack[:,:,time]=imageStack[:,:,time-1:time+1].sum(axis=2)
 
 
 treeDeathBins=np.array([0, 500, 1000, 1500, 2000, 10000])
@@ -53,7 +53,7 @@ imageStack=np.digitize(imageStack, treeDeathBins)
 #    for col in range(1, imageStack.shape[1]-1):
 #        print(imageStack[row, col,:])
 #        count+=1
-#        if count>=500:
+#        if count>=5:
 #            exit()
 
 
