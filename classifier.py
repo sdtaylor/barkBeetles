@@ -16,6 +16,7 @@ warnings.filterwarnings('ignore')
 #hipergator server with 50 cores, so don't do it on your laptop.
 import optunity
 from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import log_loss
 
 def optimize_tree_parameters():
@@ -48,15 +49,14 @@ def optimize_tree_parameters():
 
 #optimize_tree_parameters()
 #output from runing this. 
-optimized_params={'max_features': 0.86, 'min_samples_leaf': 5, 'max_depth': 5, 'min_samples_split': 46}
+optimized_params={'max_features': 0.86, 'min_samples_leaf': 36, 'max_depth': 7, 'min_samples_split': 15}
 ######################################################################################
 #Write out a raster from a numpy array.
 #Template: a raster file on disk to use for pixel size, height/width, and spatial reference.
 #array: array to write out. Should be an exact match in height/width as the template.
 #filename: file name of new raster
 #inspired by: http://geoexamples.blogspot.com/2012/12/raster-calculations-with-gdal-and-numpy.html
-def write_array(template, array, filename):
-    template_object=gdal.Open(template, GA_ReadOnly)
+def write_array(template_object, array, filename):
     driver = gdal.GetDriverByName("GTiff")
     raster_out = driver.Create(filename, template_object.RasterXSize, template_object.RasterYSize, 1, template_object.GetRasterBand(1).DataType)
     gdalnumeric.CopyDatasetInfo(template_object,raster_out)
@@ -110,6 +110,7 @@ def insert_data(array1d, rows, cols):
 #The fitted classifier on the full data set.
 def model_object(X, y, **model_params):
     model=DecisionTreeClassifier(random_state=1, **model_params)
+    #model=RandomForestClassifier(random_state=1)
     model.fit(X,y)
     return(model)
 
@@ -131,8 +132,8 @@ def create_tree_diagram(model, feature_names):
 def cross_validate(X,y, **model_params):
     ss=StratifiedShuffleSplit(y, n_iter=1, test_size=0.25, random_state=1)
     #scores=cross_val_score(clf, X, y, scoring='f1', cv=ss)
-    train, test = next(iter(ss))
-    X_train, X_test, y_train, y_test = X[train], X[test], y[train], y[test]
+    trainCV, testCV = next(iter(ss))
+    X_train, X_test, y_train, y_test = X[trainCV], X[testCV], y[trainCV], y[testCV]
 
     model=DecisionTreeClassifier(random_state=1, **model_params)
     model.fit(X,y)
@@ -150,13 +151,23 @@ y=data['t1'].values
 X=data.drop(['t1'], axis=1)
 X_feature_names=data.drop(['t1'], axis=1).columns.values
 
-#print(cross_validate(X,y, **optimized_params))
+treeDeathBins=np.array([0, 100, 1000, 1500, 2000, 10000])
+
+#print(cross_validate(X.values,y, **optimized_params))
 full_model=model_object(X,y, **optimized_params)
 #create_tree_diagram(full_model, X_feature_names)
+#exit()
 
+#The width, height, CRS, and pixel size of the template will be
+#used to write rasters that were modified using numpy arrays
+template=gdal.Open('./data/tree_cover.tif', GA_ReadOnly)
 
-#Take the 1st year data and project forward using the model.
-initial_year=gdalnumeric.LoadFile('./data/mpb_1997.tif')
-values=extract_data(initial_year)
-year2_pred=full_model.predict(values).reshape(initial_year.shape)
-write_array('./data/mpb_1997.tif', year2_pred, 'year2_test.tif')
+prediction=np.digitize(gdalnumeric.LoadFile('./data/mpb_2005.tif'), treeDeathBins)
+area_shape=prediction.shape
+for year in range(2006,2011):
+    prediction = full_model.predict(extract_data(prediction)).reshape(area_shape)
+
+    this_year_actual=np.digitize(gdalnumeric.LoadFile('./data/mpb_'+str(year)+'.tif'), treeDeathBins)
+
+    write_array(template, prediction, './results/mpb_prediction_'+str(year)+'.tif')
+    write_array(template, this_year_actual, './results/mpb_actual_'+str(year)+'.tif')

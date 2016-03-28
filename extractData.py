@@ -40,10 +40,11 @@ imageStack=stackImages(bbFiles)
 #so the number of dead at any time period = sum of the dead trees in all prior years
 for time in range(1,imageStack.shape[2]):
     #Value of each pixel = sum of that year plus the prior year
+    #imageStack[:,:,time]=imageStack[:,:,0:time+1].max(axis=2)
     imageStack[:,:,time]=imageStack[:,:,time-1:time+1].sum(axis=2)
 
 
-treeDeathBins=np.array([0, 500, 1000, 1500, 2000, 10000])
+treeDeathBins=np.array([0, 100, 1000, 1500, 2000, 10000])
 
 imageStack=np.digitize(imageStack, treeDeathBins)
 
