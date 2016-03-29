@@ -46,7 +46,7 @@ for time in range(1,imageStack.shape[2]):
 
 treeDeathBins=np.array([0, 100, 1000, 1500, 2000, 10000])
 
-#imageStack=np.digitize(imageStack, treeDeathBins)
+imageStack=np.digitize(imageStack, treeDeathBins)
 
 #Sanity check for values
 #count=1
@@ -63,7 +63,7 @@ treeDeathBins=np.array([0, 100, 1000, 1500, 2000, 10000])
 treeCover=gdalnumeric.LoadFile('./data/tree_cover.tif')
 treeCoverBins=np.array([0, 25, 50, 75, 110])
 
-#treeCover=np.digitize(treeCover, treeCoverBins)
+treeCover=np.digitize(treeCover, treeCoverBins)
 
 #Extract all values
 count=0
@@ -82,10 +82,9 @@ for row in range(1, imageStack.shape[0]-1):
             dataThisObs['treeCover']=thisPixelTreeCover
 
             #Process the surrounding pixel data as fraction in each of the 5 tree death number catagories
-            #surroundingSize=len(surrounding)
-            #for catagory in [1,2,3,4,5]:
-            #    dataThisObs['Surrounding-Cat'+str(catagory)]= np.sum(surrounding==catagory) / surroundingSize
-            dataThisObs['surrounding']=np.mean(surrounding)
+            surroundingSize=len(surrounding)
+            for catagory in [1,2,3,4,5]:
+                dataThisObs['Surrounding-Cat'+str(catagory)]= np.sum(surrounding==catagory) / surroundingSize
 
             data.append(dataThisObs)
             #count+=1
