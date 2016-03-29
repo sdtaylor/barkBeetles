@@ -1,5 +1,6 @@
 from sklearn.cross_validation import StratifiedShuffleSplit
 from sklearn.metrics import classification_report
+from sklearn.preprocessing import LabelBinarizer
 import gdalnumeric
 import warnings
 import sklearn
@@ -9,6 +10,26 @@ import gdal
 from gdalconst import *
 warnings.filterwarnings('ignore')
 
+
+#################################################################
+#Read in data written extractData.py
+data=pd.read_csv('bbCleanedData.csv')
+
+y=data['t1'].values
+X=data.drop(['t1'], axis=1)
+X_feature_names=data.drop(['t1'], axis=1).columns.values
+
+treeDeathBins=np.array([0, 100, 1000, 1500, 2000, 10000])
+
+t1_catagories=['t1_is_'+str(i) for i in np.sort(X['t'].unique())]
+encoder=LabelBinarizer()
+encoded_catagories=encoder.fit_transform(X['t'])
+encoded_catagories=encoder.fit_transform(X['t'])
+
+for i,label in enumerate(t1_catagories):
+    X[label]=encoded_catagories[:,i]
+
+X.drop('t',1, inplace=True)
 
 #################################################################
 #Tune the decision tree hyperparamters. This tunes the decision tree parameters using a particle swarm
@@ -143,15 +164,6 @@ def cross_validate(X,y, **model_params):
 
 
 #################################################################
-#Read in data written extractData.py
-
-data=pd.read_csv('bbCleanedData.csv')
-
-y=data['t1'].values
-X=data.drop(['t1'], axis=1)
-X_feature_names=data.drop(['t1'], axis=1).columns.values
-
-treeDeathBins=np.array([0, 100, 1000, 1500, 2000, 10000])
 
 #print(cross_validate(X.values,y, **optimized_params))
 full_model=model_object(X,y, **optimized_params)
