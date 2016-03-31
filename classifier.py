@@ -24,7 +24,6 @@ treeDeathBins=np.array([0, 100, 1000, 1500, 2000, 10000])
 t1_catagories=['t1_is_'+str(i) for i in np.sort(X['t'].unique())]
 encoder=LabelBinarizer()
 encoded_catagories=encoder.fit_transform(X['t'])
-encoded_catagories=encoder.fit_transform(X['t'])
 
 for i,label in enumerate(t1_catagories):
     X[label]=encoded_catagories[:,i]
@@ -70,7 +69,7 @@ def optimize_tree_parameters():
 
 #optimize_tree_parameters()
 #output from runing this. 
-optimized_params={'max_features': 0.86, 'min_samples_leaf': 36, 'max_depth': 7, 'min_samples_split': 15}
+optimized_params={'max_features': 0.83, 'min_samples_leaf': 22, 'max_depth': 7, 'min_samples_split': 38}
 ######################################################################################
 #Write out a raster from a numpy array.
 #Template: a raster file on disk to use for pixel size, height/width, and spatial reference.
@@ -119,7 +118,15 @@ def extract_data(array):
 
             allData.append(thisPixelData)
 
-    return(pd.DataFrame(allData))
+
+    allData=pd.DataFrame(allData)
+    #Convert t catagories to dummy labels
+    encoded_catagories=encoder.transform(allData['t'])
+    for i,label in enumerate(t1_catagories):
+        allData[label]=encoded_catagories[:,i]
+    allData.drop('t',1, inplace=True)
+
+    return(allData)
 
 ######################################################################################
 #take a list of values and put them back into an array
@@ -168,7 +175,6 @@ def cross_validate(X,y, **model_params):
 #print(cross_validate(X.values,y, **optimized_params))
 full_model=model_object(X,y, **optimized_params)
 #create_tree_diagram(full_model, X_feature_names)
-#exit()
 
 #The width, height, CRS, and pixel size of the template will be
 #used to write rasters that were modified using numpy arrays
