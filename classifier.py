@@ -70,7 +70,7 @@ def optimize_tree_parameters():
 
 #optimize_tree_parameters()
 #output from runing this. 
-optimized_params={'max_features': 0.68, 'min_samples_leaf': 91, 'max_depth': 9, 'min_samples_split': 10}
+optimized_params={'max_features': 0.36, 'min_samples_leaf': 70, 'max_depth': 10, 'min_samples_split': 27}
 ######################################################################################
 #Write out a raster from a numpy array.
 #Template: a raster file on disk to use for pixel size, height/width, and spatial reference.
@@ -87,8 +87,8 @@ def write_array(template_object, array, filename):
 ######################################################################################
 #Extract all cell values and their surrounding values, along with non-changing tree cover data
 treeCover=gdalnumeric.LoadFile('./data/tree_cover.tif')
-treeCoverBins=np.array([0, 25, 50, 75, 110])
-treeCover=np.digitize(treeCover, treeCoverBins)
+treeCoverBins=np.array([0,10,20,30,40,50,60,70,80,90,110])
+#treeCover=np.digitize(treeCover, treeCoverBins)
 
 #Pad array with no trees as "edges"
 treeCover=np.vstack((treeCover, np.zeros(treeCover.shape[1])))
@@ -215,11 +215,11 @@ for year in range(2006,2011):
     last_year_actual=this_year_actual
 
     plt.subplot(5,2,n)
-    plt.imshow(np.digitize(this_year_actual, treeDeathBins), cmap=plt.get_cmap('hot'), vmax=np.max(full_model.classes_), vmin=np.min(full_model.classes_))
+    plt.imshow(np.digitize(this_year_actual, treeDeathBins), cmap=plt.get_cmap('Set2'), vmax=np.max(full_model.classes_), vmin=np.min(full_model.classes_))
     plt.title(str(year)+' Actual')
     n+=1
     plt.subplot(5,2,n)
-    plt.imshow(prediction, cmap=plt.get_cmap('hot'), vmax=np.max(full_model.classes_), vmin=np.min(full_model.classes_))
+    plt.imshow(prediction, cmap=plt.get_cmap('Set2'), vmax=np.max(full_model.classes_), vmin=np.min(full_model.classes_))
     plt.title(str(year)+' Prediction')
     n+=1
     #write_array(template, prediction, './results/mpb_prediction_'+str(year)+'.tif')

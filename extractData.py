@@ -31,7 +31,7 @@ def extractValue(stack,x,y,t, n):
 dataDir='./data/'
 
 #dead tree data. one mountain pine beetle map per year
-bbFiles=[dataDir+'mpb_'+str(year)+'.tif' for year in range(1997,2011)]
+bbFiles=[dataDir+'mpb_'+str(year)+'.tif' for year in range(2005,2011)]
 
 imageStack=stackImages(bbFiles)
 
@@ -61,9 +61,9 @@ imageStack=np.digitize(imageStack, treeDeathBins)
 #The tree cover base layer. Gives percent cover of trees and makes it so the model doesn't spread
 #beetles where there are no trees. It's binned just like the trees into catagorical classes of tree cover
 treeCover=gdalnumeric.LoadFile('./data/tree_cover.tif')
-treeCoverBins=np.array([0, 25, 50, 75, 110])
+treeCoverBins=np.array([0,10,20,30,40,50,60,70,80,90,110])
 
-treeCover=np.digitize(treeCover, treeCoverBins)
+#treeCover=np.digitize(treeCover, treeCoverBins)
 
 #Extract all values
 count=0
