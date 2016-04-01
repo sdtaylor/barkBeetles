@@ -10,6 +10,7 @@ import gdal
 from gdalconst import *
 warnings.filterwarnings('ignore')
 
+#np.random.seed(1)
 
 #################################################################
 #Read in data written extractData.py
@@ -19,7 +20,7 @@ y=data['t1'].values
 X=data.drop(['t1'], axis=1)
 X_feature_names=data.drop(['t1'], axis=1).columns.values
 
-treeDeathBins=np.array([0, 100, 1000, 1500, 2000, 10000])
+treeDeathBins=np.array([0, 100, 250,500,750,1000,1500,2000,2500,5000,50000])
 
 t1_catagories=['t1_is_'+str(i) for i in np.sort(X['t'].unique())]
 encoder=LabelBinarizer()
@@ -69,7 +70,7 @@ def optimize_tree_parameters():
 
 #optimize_tree_parameters()
 #output from runing this. 
-optimized_params={'max_features': 0.83, 'min_samples_leaf': 22, 'max_depth': 7, 'min_samples_split': 38}
+optimized_params={'max_features': 0.68, 'min_samples_leaf': 91, 'max_depth': 9, 'min_samples_split': 10}
 ######################################################################################
 #Write out a raster from a numpy array.
 #Template: a raster file on disk to use for pixel size, height/width, and spatial reference.
@@ -113,7 +114,7 @@ def extract_data(array):
             surrounding=np.delete(surrounding, 4)
 
             surroundingSize=len(surrounding)
-            for catagory in [1,2,3,4,5]:
+            for catagory in range(1, len(treeDeathBins)+1):
                 thisPixelData['Surrounding-Cat'+str(catagory)]= np.sum(surrounding==catagory) / surroundingSize
 
             allData.append(thisPixelData)
@@ -150,10 +151,21 @@ from sklearn.tree import export_graphviz
 from os import system
 def create_tree_diagram(model, feature_names):
     dot_data = StringIO()
-    export_graphviz(model, out_file='modelTree.dot',
-                    feature_names=X_feature_names,
-                    class_names=['0','500','1000','1500','2000','10000+'])
+    export_graphviz(model, out_file='modelTree.dot')
+                    #feature_names=X_feature_names)
+                    #class_names=[str(i) for i in treeDeathBins[0:-1]])
+                    #class_names=['0', '100', '250', '500', '750', '1000', '1500', '2000', '2500', '5000'])
     system('dot -T png modelTree.dot -o modelTree.png')
+
+#####################################################################################
+#Randomly choose a given class given probabilites for each class
+def stochastic_predict(prob_matrix, classes):
+    pred=np.zeros(prob_matrix.shape[0])
+    #For each observation (row). independently and randomly choose a class based on the probabilites
+    for row in range(prob_matrix.shape[0]):
+        pred[row] = np.random.choice(classes, p=prob_matrix[row,])
+    return(pred)
+
 
 #####################################################################################
 #Print cross classification report using 25% of data as hold out
@@ -170,22 +182,44 @@ def cross_validate(X,y, **model_params):
 
 
 
-#################################################################
+
+
 
 #print(cross_validate(X.values,y, **optimized_params))
 full_model=model_object(X,y, **optimized_params)
 #create_tree_diagram(full_model, X_feature_names)
+#exit()
 
+import matplotlib.pyplot as plt
+import matplotlib.colors as colors
+import matplotlib.cm as cmx
 #The width, height, CRS, and pixel size of the template will be
 #used to write rasters that were modified using numpy arrays
 template=gdal.Open('./data/tree_cover.tif', GA_ReadOnly)
 
 prediction=np.digitize(gdalnumeric.LoadFile('./data/mpb_2005.tif'), treeDeathBins)
 area_shape=prediction.shape
-for year in range(2006,2011):
-    prediction = full_model.predict(extract_data(prediction)).reshape(area_shape)
 
+
+fig=plt.figure()
+n=1
+for year in range(2006,2011):
+    #prediction = full_model.predict(extract_data(prediction)).reshape(area_shape)
+    probabilites = full_model.predict_proba(extract_data(prediction))
+    prediction = stochastic_predict(probabilites, full_model.classes_).reshape(area_shape)
+
+    #plt.imshow(prediction, cmap=plt.get_cmap('hot'), vmax=np.max(full_model.classes_), vmin=np.min(full_model.classes_))
+    #plt.show()
     this_year_actual=np.digitize(gdalnumeric.LoadFile('./data/mpb_'+str(year)+'.tif'), treeDeathBins)
 
-    write_array(template, prediction, './results/mpb_prediction_'+str(year)+'.tif')
-    write_array(template, this_year_actual, './results/mpb_actual_'+str(year)+'.tif')
+    plt.subplot(10,2,n)
+    plt.imshow(this_year_actual, cmap=plt.get_cmap('hot'), vmax=np.max(full_model.classes_), vmin=np.min(full_model.classes_))
+    plt.title(str(year)+' Actual')
+    n+=1
+    plt.subplot(10,2,n)
+    plt.imshow(prediction, cmap=plt.get_cmap('hot'), vmax=np.max(full_model.classes_), vmin=np.min(full_model.classes_))
+    plt.title(str(year)+' Prediction')
+    n+=1
+    #write_array(template, prediction, './results/mpb_prediction_'+str(year)+'.tif')
+    #write_array(template, this_year_actual, './results/mpb_actual_'+str(year)+'.tif')
+plt.show()

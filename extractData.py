@@ -44,7 +44,7 @@ for time in range(1,imageStack.shape[2]):
     imageStack[:,:,time]=imageStack[:,:,time-1:time+1].sum(axis=2)
 
 
-treeDeathBins=np.array([0, 100, 1000, 1500, 2000, 10000])
+treeDeathBins=np.array([0, 100, 250,500,750,1000,1500,2000,2500,5000,50000])
 
 imageStack=np.digitize(imageStack, treeDeathBins)
 
@@ -83,7 +83,7 @@ for row in range(1, imageStack.shape[0]-1):
 
             #Process the surrounding pixel data as fraction in each of the 5 tree death number catagories
             surroundingSize=len(surrounding)
-            for catagory in [1,2,3,4,5]:
+            for catagory in range(1, len(treeDeathBins)+1):
                 dataThisObs['Surrounding-Cat'+str(catagory)]= np.sum(surrounding==catagory) / surroundingSize
 
             data.append(dataThisObs)
