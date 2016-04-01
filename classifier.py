@@ -200,8 +200,9 @@ template=gdal.Open('./data/tree_cover.tif', GA_ReadOnly)
 prediction=np.digitize(gdalnumeric.LoadFile('./data/mpb_2005.tif'), treeDeathBins)
 area_shape=prediction.shape
 
+last_year_actual=gdalnumeric.LoadFile('./data/mpb_2005.tif')
 
-fig=plt.figure()
+fig=plt.figure(figsize=(8,11))
 n=1
 for year in range(2006,2011):
     #prediction = full_model.predict(extract_data(prediction)).reshape(area_shape)
@@ -210,16 +211,18 @@ for year in range(2006,2011):
 
     #plt.imshow(prediction, cmap=plt.get_cmap('hot'), vmax=np.max(full_model.classes_), vmin=np.min(full_model.classes_))
     #plt.show()
-    this_year_actual=np.digitize(gdalnumeric.LoadFile('./data/mpb_'+str(year)+'.tif'), treeDeathBins)
+    this_year_actual=gdalnumeric.LoadFile('./data/mpb_'+str(year)+'.tif') + last_year_actual
+    last_year_actual=this_year_actual
 
-    plt.subplot(10,2,n)
-    plt.imshow(this_year_actual, cmap=plt.get_cmap('hot'), vmax=np.max(full_model.classes_), vmin=np.min(full_model.classes_))
+    plt.subplot(5,2,n)
+    plt.imshow(np.digitize(this_year_actual, treeDeathBins), cmap=plt.get_cmap('hot'), vmax=np.max(full_model.classes_), vmin=np.min(full_model.classes_))
     plt.title(str(year)+' Actual')
     n+=1
-    plt.subplot(10,2,n)
+    plt.subplot(5,2,n)
     plt.imshow(prediction, cmap=plt.get_cmap('hot'), vmax=np.max(full_model.classes_), vmin=np.min(full_model.classes_))
     plt.title(str(year)+' Prediction')
     n+=1
     #write_array(template, prediction, './results/mpb_prediction_'+str(year)+'.tif')
     #write_array(template, this_year_actual, './results/mpb_actual_'+str(year)+'.tif')
+plt.tight_layout()
 plt.show()
