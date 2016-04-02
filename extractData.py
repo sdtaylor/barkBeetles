@@ -20,9 +20,9 @@ def extractValue(stack,x,y,t, n):
         surrounding=stack[x-1:x+2 , y-1:y+2, t].reshape((9))
         #Delete the focal pixel that is in this 3x3 array
         surrounding=np.delete(surrounding, 4)
-    elif n==4:
-        raise Exception('Not doing 4 surrounding pixels yet')
-        #surrounding=imageStack[x-1:x+2 , y-1:y+2, t].reshape((9))
+    elif n==24:
+        surrounding=imageStack[x-2:x+3 , y-2:y+3, t].reshape((25))
+        surrounding=np.delete(surrounding, 12)
 
     return(focalPixel_t, focalPixel_t1, surrounding)
 
@@ -81,7 +81,7 @@ for row in range(1, imageStack.shape[0]-1):
             dataThisObs['t1']=t1
             dataThisObs['treeCover']=thisPixelTreeCover
 
-            #Process the surrounding pixel data as fraction in each of the 5 tree death number catagories
+            #Process the surrounding pixel data as fraction in each of the tree death number catagories
             surroundingSize=len(surrounding)
             for catagory in range(1, len(treeDeathBins)+1):
                 dataThisObs['Surrounding-Cat'+str(catagory)]= np.sum(surrounding==catagory) / surroundingSize

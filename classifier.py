@@ -139,7 +139,7 @@ def insert_data(array1d, rows, cols):
 #The fitted classifier on the full data set.
 def model_object(X, y, **model_params):
     model=DecisionTreeClassifier(random_state=1, **model_params)
-    #model=RandomForestClassifier(random_state=1)
+    #model=RandomForestClassifier(random_state=1, n_estimators=500, n_jobs=2)
     model.fit(X,y)
     return(model)
 
@@ -167,7 +167,7 @@ def stochastic_predict(prob_matrix, classes):
     return(pred)
 
 
-#####################################################################################
+#######G##############################################################################
 #Print cross classification report using 25% of data as hold out
 def cross_validate(X,y, **model_params):
     ss=StratifiedShuffleSplit(y, n_iter=1, test_size=0.25, random_state=1)
@@ -180,10 +180,36 @@ def cross_validate(X,y, **model_params):
     y_pred=model.predict(X_test)
     print(classification_report(y_test, y_pred))
 
+#####################################################################################
+#Draw side by side image of actual and prediction for all years
+def draw_side_by_side(actual, prediction, years):
+    actual=np.digitize(actual, treeDeathBins)
+
+    fig=plt.figure(figsize=(16,22))
+    n=1
+    for i, year in enumerate(years):
+        plt.subplot(5,2,n)
+        plt.imshow(actual[:,:,i], cmap=plt.get_cmap('Set2'), vmax=np.max(full_model.classes_), vmin=np.min(full_model.classes_))
+        plt.title(str(year)+' Actual')
+        n+=1
+        plt.subplot(5,2,n)
+        plt.imshow(prediction[:,:,i], cmap=plt.get_cmap('Set2'), vmax=np.max(full_model.classes_), vmin=np.min(full_model.classes_))
+        plt.title(str(year)+' Prediction')
+        n+=1
+    plt.tight_layout()
+    plt.show()
 
 
+#####################################################################################
+#Write out geo referenced rasters of all actual maps and predictions
+def write_all_rasters(actual, prediction, years, template):
+    actual=np.digitize(actual, treeDeathBins)
+    for i, year in enumerate(years):
+        write_array(template, prediction[:,:,i], './results/mpb_prediction_'+str(year)+'.tif')
+        write_array(template, actual[:,:,i], './results/mpb_actual_'+str(year)+'.tif')
 
 
+#####################################################################################
 
 #print(cross_validate(X.values,y, **optimized_params))
 full_model=model_object(X,y, **optimized_params)
@@ -202,9 +228,13 @@ area_shape=prediction.shape
 
 last_year_actual=gdalnumeric.LoadFile('./data/mpb_2005.tif')
 
-fig=plt.figure(figsize=(8,11))
-n=1
-for year in range(2006,2011):
+year_list=list(range(2006,2011))
+
+all_years_predictions=np.zeros((area_shape[0], area_shape[1], len(year_list)))
+all_years_actual=np.zeros((area_shape[0], area_shape[1], len(year_list)))
+
+
+for i, year in enumerate(year_list):
     #prediction = full_model.predict(extract_data(prediction)).reshape(area_shape)
     probabilites = full_model.predict_proba(extract_data(prediction))
     prediction = stochastic_predict(probabilites, full_model.classes_).reshape(area_shape)
@@ -214,15 +244,12 @@ for year in range(2006,2011):
     this_year_actual=gdalnumeric.LoadFile('./data/mpb_'+str(year)+'.tif') + last_year_actual
     last_year_actual=this_year_actual
 
-    plt.subplot(5,2,n)
-    plt.imshow(np.digitize(this_year_actual, treeDeathBins), cmap=plt.get_cmap('Set2'), vmax=np.max(full_model.classes_), vmin=np.min(full_model.classes_))
-    plt.title(str(year)+' Actual')
-    n+=1
-    plt.subplot(5,2,n)
-    plt.imshow(prediction, cmap=plt.get_cmap('Set2'), vmax=np.max(full_model.classes_), vmin=np.min(full_model.classes_))
-    plt.title(str(year)+' Prediction')
-    n+=1
-    #write_array(template, prediction, './results/mpb_prediction_'+str(year)+'.tif')
-    #write_array(template, this_year_actual, './results/mpb_actual_'+str(year)+'.tif')
-plt.tight_layout()
-plt.show()
+    all_years_predictions[:,:,i]=prediction
+    all_years_actual[:,:,i]=this_year_actual
+
+    #all_results[year]={'prediction': np.bincount(prediction.reshape((prediction.shape[0]*prediction.shape[1])).astype(int)).tolist(),
+    #                   'actual'    : np.bincount(np.digitize(this_year_actual, treeDeathBins).reshape((prediction.shape[0]*prediction.shape[1])).astype(int))}
+
+
+#draw_side_by_side(all_years_actual, all_years_predictions, year_list)
+write_all_rasters(all_years_actual, all_years_predictions, year_list, template)
