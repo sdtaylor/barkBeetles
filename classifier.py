@@ -208,7 +208,43 @@ def write_all_rasters(actual, prediction, years, template):
         write_array(template, prediction[:,:,i], './results/mpb_prediction_'+str(year)+'.tif')
         write_array(template, actual[:,:,i], './results/mpb_actual_'+str(year)+'.tif')
 
+#####################################################################################
+#Calculate the percentages of all classes within each actual and predicted images in each year
+def get_percentages(actual, prediction, years):
+    actual=np.digitize(actual, treeDeathBins)
 
+    actual_pct=[]
+    predicted_pct=[]
+
+    for i, year in enumerate(years):
+        predicted_pct.append(np.bincount(prediction[:,:,i].reshape((prediction.shape[0]*prediction.shape[1])).astype(int)).tolist()[1:])
+        actual_pct.append(np.bincount(actual[:,:,i].reshape((prediction.shape[0]*prediction.shape[1])).astype(int)).tolist()[1:])
+
+    #These are 2d arrays (cols: classes * rows: years), that give the percentage of pixels in each class in each year.
+    total_pixels=actual.shape[0]*actual.shape[1]
+    actual_pct=np.array(actual_pct) / total_pixels
+    predicted_pct=np.array(predicted_pct) / total_pixels
+    return(actual_pct, predicted_pct)
+#####################################################################################
+#Create bar graph of percentages of each class in each year's prediction and actual
+def create_bar_graph(pct, years, classes):
+    actual, predicted=pct
+    num_years=len(years)
+
+    f, ax = plt.subplots(1, figsize=(10, num_years))
+
+    bar_width=0.5
+    bar_left_edges=np.arange(1, num_years+1, 0.5).tolist()
+
+    ax.bar(left=bar_left_edges[1::2], height=actual[:,0], color='red', label='prediction', width=bar_width)
+    ax.bar(left=bar_left_edges[0::2], height=predicted[:,0], color='blue', label='prediction', width=bar_width)
+
+    for c in range(1, len(classes)):
+        ax.bar(left=bar_left_edges[1::2], height=actual[:,c], bottom=actual[:,c-1], color='red', label='prediction', width=bar_width)
+        ax.bar(left=bar_left_edges[0::2], height=predicted[:,c], bottom=predicted[:,c-1], color='blue', label='prediction', width=bar_width)
+
+
+    plt.show()
 #####################################################################################
 
 #print(cross_validate(X.values,y, **optimized_params))
@@ -247,9 +283,9 @@ for i, year in enumerate(year_list):
     all_years_predictions[:,:,i]=prediction
     all_years_actual[:,:,i]=this_year_actual
 
-    #all_results[year]={'prediction': np.bincount(prediction.reshape((prediction.shape[0]*prediction.shape[1])).astype(int)).tolist(),
-    #                   'actual'    : np.bincount(np.digitize(this_year_actual, treeDeathBins).reshape((prediction.shape[0]*prediction.shape[1])).astype(int))}
 
 
 #draw_side_by_side(all_years_actual, all_years_predictions, year_list)
 write_all_rasters(all_years_actual, all_years_predictions, year_list, template)
+create_bar_graph(get_percentages(all_years_actual, all_years_predictions, year_list), year_list, full_model.classes_)
+
