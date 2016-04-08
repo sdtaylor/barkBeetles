@@ -210,21 +210,25 @@ def write_all_rasters(actual, prediction, years, template):
 
 #####################################################################################
 #Calculate the percentages of all classes within each actual and predicted images in each year
+#Pack them into a dataframe for export to csv
 def get_percentages(actual, prediction, years):
     actual=np.digitize(actual, treeDeathBins)
 
-    actual_pct=[]
-    predicted_pct=[]
+    total_pixels=actual.shape[0]*actual.shape[1]
 
-    for i, year in enumerate(years):
-        predicted_pct.append(np.bincount(prediction[:,:,i].reshape((prediction.shape[0]*prediction.shape[1])).astype(int)).tolist()[1:])
-        actual_pct.append(np.bincount(actual[:,:,i].reshape((prediction.shape[0]*prediction.shape[1])).astype(int)).tolist()[1:])
+    df=[]
+    for i_year, year in enumerate(years):
+        predicted_pct=np.bincount(prediction[:,:,i_year].reshape((prediction.shape[0]*prediction.shape[1])).astype(int))[1:]
+        actual_pct=np.bincount(actual[:,:,i_year].reshape((prediction.shape[0]*prediction.shape[1])).astype(int))[1:]
+
+        predicted_pct = predicted_pct / total_pixels
+        actual_pct = actual_pct / total_pixels
+
+        for i_class, this_class in enumerate(treeDeathBins[:-1]):
+            df.append({'year':year, 'catagory':this_class, 'actual_pct':actual_pct[i_class], 'precicted_pct':predicted_pct[i_class]})
 
     #These are 2d arrays (cols: classes * rows: years), that give the percentage of pixels in each class in each year.
-    total_pixels=actual.shape[0]*actual.shape[1]
-    actual_pct=np.array(actual_pct) / total_pixels
-    predicted_pct=np.array(predicted_pct) / total_pixels
-    return(actual_pct, predicted_pct)
+    return(pd.DataFrame(df))
 #####################################################################################
 #Create bar graph of percentages of each class in each year's prediction and actual
 def create_bar_graph(pct, years, classes):
@@ -285,7 +289,7 @@ for i, year in enumerate(year_list):
 
 
 
-draw_side_by_side(all_years_actual, all_years_predictions, year_list)
+#draw_side_by_side(all_years_actual, all_years_predictions, year_list)
 #write_all_rasters(all_years_actual, all_years_predictions, year_list, template)
-#create_bar_graph(get_percentages(all_years_actual, all_years_predictions, year_list), year_list, full_model.classes_)
+print(get_percentages(all_years_actual, all_years_predictions, year_list), year_list, full_model.classes_)
 
