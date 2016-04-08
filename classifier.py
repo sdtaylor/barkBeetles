@@ -20,8 +20,7 @@ y=data['t1'].values
 X=data.drop(['t1'], axis=1)
 X_feature_names=data.drop(['t1'], axis=1).columns.values
 
-#treeDeathBins=np.array([0, 100, 250,500,750,1000,1500,2000,2500,5000,50000])
-treeDeathBins=np.array([0, 50, 10000])
+treeDeathBins=np.array([0, 100, 250,500,750,1000,1500,2000,2500,5000,50000])
 
 t1_catagories=['t1_is_'+str(i) for i in np.sort(X['t'].unique())]
 encoder=LabelBinarizer()
@@ -30,8 +29,9 @@ encoded_catagories=encoder.fit_transform(X['t'])
 for i,label in enumerate(t1_catagories):
     X[label]=encoded_catagories[:,i]
 
-X.drop(['t','time'],1, inplace=True)
+X.drop('t',1, inplace=True)
 
+#################################################################
 #Tune the decision tree hyperparamters. This tunes the decision tree parameters using a particle swarm
 #optimizaion that minimizes the log loss of the classification. It takes about 20 minutes to run on a
 #hipergator server with 50 cores, so don't do it on your laptop.
@@ -70,7 +70,7 @@ def optimize_tree_parameters():
 
 #optimize_tree_parameters()
 #output from runing this. 
-optimized_params={'max_features': 0.65, 'min_samples_leaf': 81, 'max_depth': 8, 'min_samples_split': 43}
+optimized_params={'max_features': 0.36, 'min_samples_leaf': 70, 'max_depth': 10, 'min_samples_split': 27}
 ######################################################################################
 #Write out a raster from a numpy array.
 #Template: a raster file on disk to use for pixel size, height/width, and spatial reference.
@@ -103,10 +103,6 @@ def extract_data(array):
     array=np.hstack((array, np.zeros(array.shape[0]).reshape((array.shape[0],1))))
     array=np.hstack((np.zeros(array.shape[0]).reshape((array.shape[0],1)), array))
 
-    class_locations=[]
-    for this_class in range(1, len(treeDeathBins)+1):
-        class_locations.append(np.argwhere(np.abs(array==this_class)))
-
     allData=[]
     for row in range(1, array.shape[0]-1):
         for col in range(1, array.shape[1]-1):
@@ -120,12 +116,6 @@ def extract_data(array):
             surroundingSize=len(surrounding)
             for catagory in range(1, len(treeDeathBins)+1):
                 thisPixelData['Surrounding-Cat'+str(catagory)]= np.sum(surrounding==catagory) / surroundingSize
-
-                distances=(((row-class_locations[catagory-1][:,0])**2)+((col-class_locations[catagory-1][:,1])**2))**0.5
-                if len(distances>0):
-                    thisPixelData['Distance_to_Cat'+str(catagory)]=np.min(distances)
-                else:
-                    thisPixelData['Distance_to_Cat'+str(catagory)]=-1
 
             allData.append(thisPixelData)
 
@@ -148,8 +138,8 @@ def insert_data(array1d, rows, cols):
 ######################################################################################
 #The fitted classifier on the full data set.
 def model_object(X, y, **model_params):
-    #model=DecisionTreeClassifier(random_state=1, **model_params)
-    model=RandomForestClassifier(random_state=1, n_estimators=500, n_jobs=2)
+    model=DecisionTreeClassifier(random_state=1, **model_params)
+    #model=RandomForestClassifier(random_state=1, n_estimators=500, n_jobs=2)
     model.fit(X,y)
     return(model)
 
@@ -185,9 +175,8 @@ def cross_validate(X,y, **model_params):
     trainCV, testCV = next(iter(ss))
     X_train, X_test, y_train, y_test = X[trainCV], X[testCV], y[trainCV], y[testCV]
 
-    #model=DecisionTreeClassifier(random_state=1, **model_params)
-    model=RandomForestClassifier(random_state=1, n_estimators=500)
-    model.fit(X_train,y_train)
+    model=DecisionTreeClassifier(random_state=1, **model_params)
+    model.fit(X,y)
     y_pred=model.predict(X_test)
     print(classification_report(y_test, y_pred))
 

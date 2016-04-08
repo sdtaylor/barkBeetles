@@ -44,8 +44,7 @@ for time in range(1,imageStack.shape[2]):
     imageStack[:,:,time]=imageStack[:,:,time-1:time+1].sum(axis=2)
 
 
-#treeDeathBins=np.array([0, 100, 250,500,750,1000,1500,2000,2500,5000,50000])
-treeDeathBins=np.array([0, 50, 10000])
+treeDeathBins=np.array([0, 100, 250,500,750,1000,1500,2000,2500,5000,50000])
 
 imageStack=np.digitize(imageStack, treeDeathBins)
 
@@ -69,35 +68,23 @@ treeCoverBins=np.array([0,10,20,30,40,50,60,70,80,90,110])
 #Extract all values
 count=0
 data=[]
-for time in range(0, imageStack.shape[2]-1):
-    #Get locations for all different classes within array to calculate distances.
-    class_locations=[]
-    for this_class in range(1, len(treeDeathBins)+1):
-        class_locations.append(np.argwhere(np.abs(imageStack[:,:,time]==this_class)))
+for row in range(1, imageStack.shape[0]-1):
+    for col in range(1, imageStack.shape[1]-1):
+        #First get the base tree cover for this pixel
+        thisPixelTreeCover=treeCover[row,col]
 
-    for row in range(1, imageStack.shape[0]-1):
-        for col in range(1, imageStack.shape[1]-1):
-            #First get the base tree cover for this pixel
-            thisPixelTreeCover=treeCover[row,col]
-
+        for time in range(0, imageStack.shape[2]-1):
             dataThisObs={}
             t, t1, surrounding=extractValue(imageStack, row, col, time, 8)
 
             dataThisObs['t']=t
             dataThisObs['t1']=t1
             dataThisObs['treeCover']=thisPixelTreeCover
-            dataThisObs['time']=time
 
             #Process the surrounding pixel data as fraction in each of the tree death number catagories
-            #Also get distances for each of the classes
             surroundingSize=len(surrounding)
             for catagory in range(1, len(treeDeathBins)+1):
                 dataThisObs['Surrounding-Cat'+str(catagory)]= np.sum(surrounding==catagory) / surroundingSize
-                distances=(((row-class_locations[catagory-1][:,0])**2)+((col-class_locations[catagory-1][:,1])**2))**0.5
-                if len(distances>0):
-                    dataThisObs['Distance_to_Cat'+str(catagory)]=np.min(distances)
-                else:
-                    dataThisObs['Distance_to_Cat'+str(catagory)]=-1
 
             data.append(dataThisObs)
             #count+=1
