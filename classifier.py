@@ -20,7 +20,8 @@ y=data['t1'].values
 X=data.drop(['t1'], axis=1)
 X_feature_names=data.drop(['t1'], axis=1).columns.values
 
-treeDeathBins=np.array([0, 100, 250,500,750,1000,1500,2000,2500,5000,50000])
+#treeDeathBins=np.array([0, 100, 250,500,750,1000,1500,2000,2500,5000,50000])
+treeDeathBins=np.array([0,1,2,3,4,5,6,7,8,9,10])
 
 t1_catagories=['t1_is_'+str(i) for i in np.sort(X['t'].unique())]
 encoder=LabelBinarizer()
@@ -183,7 +184,7 @@ def cross_validate(X,y, **model_params):
 #####################################################################################
 #Draw side by side image of actual and prediction for all years
 def draw_side_by_side(actual, prediction, years):
-    actual=np.digitize(actual, treeDeathBins)
+    actual=np.digitize(np.log1p(actual), treeDeathBins)
 
     fig=plt.figure(figsize=(16,22))
     n=1
@@ -203,7 +204,7 @@ def draw_side_by_side(actual, prediction, years):
 #####################################################################################
 #Write out geo referenced rasters of all actual maps and predictions
 def write_all_rasters(actual, prediction, years, template):
-    actual=np.digitize(actual, treeDeathBins)
+    actual=np.digitize(np.log1p(actual), treeDeathBins)
     for i, year in enumerate(years):
         write_array(template, prediction[:,:,i], './results/mpb_prediction_'+str(year)+'.tif')
         write_array(template, actual[:,:,i], './results/mpb_actual_'+str(year)+'.tif')
@@ -212,7 +213,7 @@ def write_all_rasters(actual, prediction, years, template):
 #Calculate the percentages of all classes within each actual and predicted images in each year
 #Pack them into a dataframe for export to csv
 def get_percentages(actual, prediction, years):
-    actual=np.digitize(actual, treeDeathBins)
+    actual=np.digitize(np.log1p(actual), treeDeathBins)
 
     total_pixels=actual.shape[0]*actual.shape[1]
 
@@ -268,7 +269,7 @@ import matplotlib.cm as cmx
 #used to write rasters that were modified using numpy arrays
 template=gdal.Open('./data/testingArea/tree_cover.tif', GA_ReadOnly)
 
-prediction=np.digitize(gdalnumeric.LoadFile('./data/testingArea/mpb_2005.tif'), treeDeathBins)
+prediction=np.digitize(np.log1p(gdalnumeric.LoadFile('./data/testingArea/mpb_2005.tif')), treeDeathBins)
 area_shape=prediction.shape
 
 last_year_actual=gdalnumeric.LoadFile('./data/testingArea/mpb_2005.tif')
@@ -296,6 +297,6 @@ for i, year in enumerate(year_list):
 
 draw_side_by_side(all_years_actual, all_years_predictions, year_list)
 #write_all_rasters(all_years_actual, all_years_predictions, year_list, template)
-#results=get_percentages(all_years_actual, all_years_predictions, year_list)
-#results.to_csv('class_percentages.csv', index=False)
+results=get_percentages(all_years_actual, all_years_predictions, year_list)
+results.to_csv('class_percentages.csv', index=False)
 

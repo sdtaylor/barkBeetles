@@ -44,9 +44,10 @@ for time in range(1,imageStack.shape[2]):
     imageStack[:,:,time]=imageStack[:,:,time-1:time+1].sum(axis=2)
 
 
-treeDeathBins=np.array([0, 100, 250,500,750,1000,1500,2000,2500,5000,50000])
+#treeDeathBins=np.array([0, 100, 250,500,750,1000,1500,2000,2500,5000,50000])
+treeDeathBins=np.array([0,1,2,3,4,5,6,7,8,9,10])
 
-imageStack=np.digitize(imageStack, treeDeathBins)
+imageStack=np.digitize(np.log1p(imageStack), treeDeathBins)
 
 #Sanity check for values
 #count=1
