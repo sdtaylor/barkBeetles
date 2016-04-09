@@ -86,7 +86,7 @@ def write_array(template_object, array, filename):
 
 ######################################################################################
 #Extract all cell values and their surrounding values, along with non-changing tree cover data
-treeCover=gdalnumeric.LoadFile('./data/tree_cover.tif')
+treeCover=gdalnumeric.LoadFile('./data/testingArea/tree_cover.tif')
 treeCoverBins=np.array([0,10,20,30,40,50,60,70,80,90,110])
 #treeCover=np.digitize(treeCover, treeCoverBins)
 
@@ -266,12 +266,12 @@ import matplotlib.colors as colors
 import matplotlib.cm as cmx
 #The width, height, CRS, and pixel size of the template will be
 #used to write rasters that were modified using numpy arrays
-template=gdal.Open('./data/tree_cover.tif', GA_ReadOnly)
+template=gdal.Open('./data/testingArea/tree_cover.tif', GA_ReadOnly)
 
-prediction=np.digitize(gdalnumeric.LoadFile('./data/mpb_2005.tif'), treeDeathBins)
+prediction=np.digitize(gdalnumeric.LoadFile('./data/testingArea/mpb_2005.tif'), treeDeathBins)
 area_shape=prediction.shape
 
-last_year_actual=gdalnumeric.LoadFile('./data/mpb_2005.tif')
+last_year_actual=gdalnumeric.LoadFile('./data/testingArea/mpb_2005.tif')
 
 year_list=list(range(2006,2011))
 
@@ -286,7 +286,7 @@ for i, year in enumerate(year_list):
 
     #plt.imshow(prediction, cmap=plt.get_cmap('hot'), vmax=np.max(full_model.classes_), vmin=np.min(full_model.classes_))
     #plt.show()
-    this_year_actual=gdalnumeric.LoadFile('./data/mpb_'+str(year)+'.tif') + last_year_actual
+    this_year_actual=gdalnumeric.LoadFile('./data/testingArea/mpb_'+str(year)+'.tif') + last_year_actual
     last_year_actual=this_year_actual
 
     all_years_predictions[:,:,i]=prediction
@@ -294,8 +294,8 @@ for i, year in enumerate(year_list):
 
 
 
-#draw_side_by_side(all_years_actual, all_years_predictions, year_list)
+draw_side_by_side(all_years_actual, all_years_predictions, year_list)
 #write_all_rasters(all_years_actual, all_years_predictions, year_list, template)
-results=get_percentages(all_years_actual, all_years_predictions, year_list)
-results.to_csv('class_percentages.csv', index=False)
+#results=get_percentages(all_years_actual, all_years_predictions, year_list)
+#results.to_csv('class_percentages.csv', index=False)
 
