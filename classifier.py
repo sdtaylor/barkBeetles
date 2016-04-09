@@ -225,10 +225,14 @@ def get_percentages(actual, prediction, years):
         predicted_pct = predicted_pct / total_pixels
         actual_pct = actual_pct / total_pixels
 
+        #Put in catagories predicted from training area but not seen in testing area
+        while len(predicted_pct) > len(actual_pct):
+            actual_pct = np.append(actual_pct, 0)
+
         for i_class, this_class in enumerate(treeDeathBins[:-1]):
-            catagory_name=str(this_class)+' - '+str(treeDeathBins[i_class+1])
+            catagory_name=str(np.rint(np.expm1(this_class)))+' - '+str(np.rint(np.expm1(treeDeathBins[i_class+1])))
             if i_class == len(treeDeathBins)-2:
-                catagory_name=str(this_class)+'+'
+                catagory_name=str(np.rint(np.expm1(this_class)))+'+'
 
             df.append({'year':year, 'catagory':catagory_name, 'pct':actual_pct[i_class], 'type':'actual'})
             df.append({'year':year, 'catagory':catagory_name, 'pct':predicted_pct[i_class], 'type':'predicted'})
@@ -295,7 +299,7 @@ for i, year in enumerate(year_list):
 
 
 
-draw_side_by_side(all_years_actual, all_years_predictions, year_list)
+#draw_side_by_side(all_years_actual, all_years_predictions, year_list)
 #write_all_rasters(all_years_actual, all_years_predictions, year_list, template)
 results=get_percentages(all_years_actual, all_years_predictions, year_list)
 results.to_csv('class_percentages.csv', index=False)
