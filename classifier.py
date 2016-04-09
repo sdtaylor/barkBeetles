@@ -225,7 +225,12 @@ def get_percentages(actual, prediction, years):
         actual_pct = actual_pct / total_pixels
 
         for i_class, this_class in enumerate(treeDeathBins[:-1]):
-            df.append({'year':year, 'catagory':this_class, 'actual_pct':actual_pct[i_class], 'precicted_pct':predicted_pct[i_class]})
+            catagory_name=str(this_class)+' - '+str(treeDeathBins[i_class+1])
+            if i_class == len(treeDeathBins)-2:
+                catagory_name=str(this_class)+'+'
+
+            df.append({'year':year, 'catagory':catagory_name, 'pct':actual_pct[i_class], 'type':'actual'})
+            df.append({'year':year, 'catagory':catagory_name, 'pct':predicted_pct[i_class], 'type':'predicted'})
 
     #These are 2d arrays (cols: classes * rows: years), that give the percentage of pixels in each class in each year.
     return(pd.DataFrame(df))
@@ -291,5 +296,6 @@ for i, year in enumerate(year_list):
 
 #draw_side_by_side(all_years_actual, all_years_predictions, year_list)
 #write_all_rasters(all_years_actual, all_years_predictions, year_list, template)
-print(get_percentages(all_years_actual, all_years_predictions, year_list), year_list, full_model.classes_)
+results=get_percentages(all_years_actual, all_years_predictions, year_list)
+results.to_csv('class_percentages.csv', index=False)
 
