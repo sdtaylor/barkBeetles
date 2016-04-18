@@ -18,7 +18,6 @@ data=pd.read_csv('bbCleanedData.csv')
 
 y=data['t1'].values
 X=data.drop(['t1'], axis=1)
-X_feature_names=data.drop(['t1'], axis=1).columns.values
 
 #treeDeathBins=np.array([0, 100, 250,500,750,1000,1500,2000,2500,5000,50000])
 treeDeathBins=np.array([0,1,2,3,4,5,6,7,8,9,10])
@@ -32,6 +31,7 @@ for i,label in enumerate(t1_catagories):
 
 X.drop('t',1, inplace=True)
 
+X_feature_names=X.columns.values
 #################################################################
 #Tune the decision tree hyperparamters. This tunes the decision tree parameters using a particle swarm
 #optimizaion that minimizes the log loss of the classification. It takes about 20 minutes to run on a
@@ -87,7 +87,7 @@ def write_array(template_object, array, filename):
 
 ######################################################################################
 #Extract all cell values and their surrounding values, along with non-changing tree cover data
-treeCover=gdalnumeric.LoadFile('./data/testingArea/tree_cover.tif')
+treeCover=gdalnumeric.LoadFile('./data/trainingArea/tree_cover.tif')
 treeCoverBins=np.array([0,10,20,30,40,50,60,70,80,90,110])
 #treeCover=np.digitize(treeCover, treeCoverBins)
 
@@ -152,9 +152,9 @@ from sklearn.tree import export_graphviz
 from os import system
 def create_tree_diagram(model, feature_names):
     dot_data = StringIO()
-    export_graphviz(model, out_file='modelTree.dot')
-                    #feature_names=X_feature_names)
-                    #class_names=[str(i) for i in treeDeathBins[0:-1]])
+    export_graphviz(model, out_file='modelTree.dot',
+                    feature_names=X_feature_names,
+                    class_names=['Class-'+str(i) for i in treeDeathBins[0:-1]])
                     #class_names=['0', '100', '250', '500', '750', '1000', '1500', '2000', '2500', '5000'])
     system('dot -T png modelTree.dot -o modelTree.png')
 
@@ -263,20 +263,20 @@ def create_bar_graph(pct, years, classes):
 
 #print(cross_validate(X.values,y, **optimized_params))
 full_model=model_object(X,y, **optimized_params)
-#create_tree_diagram(full_model, X_feature_names)
-#exit()
+create_tree_diagram(full_model, X_feature_names)
+exit()
 
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import matplotlib.cm as cmx
 #The width, height, CRS, and pixel size of the template will be
 #used to write rasters that were modified using numpy arrays
-template=gdal.Open('./data/testingArea/tree_cover.tif', GA_ReadOnly)
+template=gdal.Open('./data/trainingArea/tree_cover.tif', GA_ReadOnly)
 
-prediction=np.digitize(np.log1p(gdalnumeric.LoadFile('./data/testingArea/mpb_2005.tif')), treeDeathBins)
+prediction=np.digitize(np.log1p(gdalnumeric.LoadFile('./data/trainingArea/mpb_2005.tif')), treeDeathBins)
 area_shape=prediction.shape
 
-last_year_actual=gdalnumeric.LoadFile('./data/testingArea/mpb_2005.tif')
+last_year_actual=gdalnumeric.LoadFile('./data/trainingArea/mpb_2005.tif')
 
 year_list=list(range(2006,2011))
 
@@ -291,7 +291,7 @@ for i, year in enumerate(year_list):
 
     #plt.imshow(prediction, cmap=plt.get_cmap('hot'), vmax=np.max(full_model.classes_), vmin=np.min(full_model.classes_))
     #plt.show()
-    this_year_actual=gdalnumeric.LoadFile('./data/testingArea/mpb_'+str(year)+'.tif') + last_year_actual
+    this_year_actual=gdalnumeric.LoadFile('./data/trainingArea/mpb_'+str(year)+'.tif') + last_year_actual
     last_year_actual=this_year_actual
 
     all_years_predictions[:,:,i]=prediction
