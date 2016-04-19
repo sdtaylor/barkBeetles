@@ -191,11 +191,11 @@ def draw_side_by_side(actual, prediction, years):
     n=1
     for i, year in enumerate(years):
         plt.subplot(5,2,n)
-        plt.imshow(actual[:,:,i], cmap=plt.get_cmap('Set2'), vmax=np.max(full_model.classes_), vmin=np.min(full_model.classes_))
+        plt.imshow(actual[:,:,i], cmap=plt.get_cmap('Reds'), vmax=np.max(full_model.classes_), vmin=np.min(full_model.classes_))
         plt.title(str(year)+' Actual')
         n+=1
         plt.subplot(5,2,n)
-        plt.imshow(prediction[:,:,i], cmap=plt.get_cmap('Set2'), vmax=np.max(full_model.classes_), vmin=np.min(full_model.classes_))
+        plt.imshow(prediction[:,:,i], cmap=plt.get_cmap('Reds'), vmax=np.max(full_model.classes_), vmin=np.min(full_model.classes_))
         plt.title(str(year)+' Prediction')
         n+=1
     plt.tight_layout()
