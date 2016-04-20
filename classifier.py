@@ -10,7 +10,6 @@ import gdal
 from gdalconst import *
 warnings.filterwarnings('ignore')
 
-#np.random.seed(1)
 
 testingFolder='./data/testingArea/'
 #################################################################
@@ -20,19 +19,32 @@ data=pd.read_csv('bbCleanedData.csv')
 y=data['t1'].values
 X=data.drop(['t1'], axis=1)
 
-#treeDeathBins=np.array([0, 100, 250,500,750,1000,1500,2000,2500,5000,50000])
+#Death bins corrospond to transformed data. 
 treeDeathBins=np.array([0,1,2,3,4,5,6,7,8,9,10])
 
+#Make the t1 data into dummy variables instead of a single column
 t1_catagories=['t1_is_'+str(i) for i in np.sort(X['t'].unique())]
 encoder=LabelBinarizer()
 encoded_catagories=encoder.fit_transform(X['t'])
 
 for i,label in enumerate(t1_catagories):
     X[label]=encoded_catagories[:,i]
-
 X.drop('t',1, inplace=True)
 
+#Feature names for graphs and stuff
 X_feature_names=X.columns.values
+
+######################################################################################
+#Prepare tree cover data.
+treeCover=gdalnumeric.LoadFile(testingFolder+'tree_cover.tif')
+treeCoverBins=np.array([0,10,20,30,40,50,60,70,80,90,110])
+
+#Pad array with no trees as "edges"
+treeCover=np.vstack((treeCover, np.zeros(treeCover.shape[1])))
+treeCover=np.vstack((np.zeros(treeCover.shape[1]), treeCover))
+treeCover=np.hstack((treeCover, np.zeros(treeCover.shape[0]).reshape((treeCover.shape[0],1))))
+treeCover=np.hstack((np.zeros(treeCover.shape[0]).reshape((treeCover.shape[0],1)), treeCover))
+
 #################################################################
 #Tune the decision tree hyperparamters. This tunes the decision tree parameters using a particle swarm
 #optimizaion that minimizes the log loss of the classification. It takes about 20 minutes to run on a
@@ -73,6 +85,7 @@ def optimize_tree_parameters():
 #optimize_tree_parameters()
 #output from runing this. 
 optimized_params={'max_features': 0.36, 'min_samples_leaf': 70, 'max_depth': 10, 'min_samples_split': 27}
+
 ######################################################################################
 #Write out a raster from a numpy array.
 #Template: a raster file on disk to use for pixel size, height/width, and spatial reference.
@@ -86,18 +99,9 @@ def write_array(template_object, array, filename):
     bandOut=raster_out.GetRasterBand(1)
     gdalnumeric.BandWriteArray(bandOut, array)
 
-######################################################################################
-#Extract all cell values and their surrounding values, along with non-changing tree cover data
-treeCover=gdalnumeric.LoadFile(testingFolder+'tree_cover.tif')
-treeCoverBins=np.array([0,10,20,30,40,50,60,70,80,90,110])
-#treeCover=np.digitize(treeCover, treeCoverBins)
-
-#Pad array with no trees as "edges"
-treeCover=np.vstack((treeCover, np.zeros(treeCover.shape[1])))
-treeCover=np.vstack((np.zeros(treeCover.shape[1]), treeCover))
-treeCover=np.hstack((treeCover, np.zeros(treeCover.shape[0]).reshape((treeCover.shape[0],1))))
-treeCover=np.hstack((np.zeros(treeCover.shape[0]).reshape((treeCover.shape[0],1)), treeCover))
-
+####################################################################################
+#Takes an array from a certain timestep and retuns the data in a format that can be
+#put into the decision tree classifier
 def extract_data(array):
     #Pad array with 0 tree deaths as "edges"
     array=np.vstack((array, np.zeros(array.shape[1])))
@@ -132,16 +136,9 @@ def extract_data(array):
     return(allData)
 
 ######################################################################################
-#take a list of values and put them back into an array
-def insert_data(array1d, rows, cols):
-    array2d=np.empty(rows*cols).reshape((rows, cols))
-
-
-######################################################################################
 #The fitted classifier on the full data set.
 def model_object(X, y, **model_params):
     model=DecisionTreeClassifier(random_state=1, **model_params)
-    #model=RandomForestClassifier(random_state=1, n_estimators=500, n_jobs=2)
     model.fit(X,y)
     return(model)
 
@@ -160,6 +157,7 @@ def create_tree_diagram(model, feature_names):
     system('dot -T png modelTree.dot -o modelTree.png')
 
 #####################################################################################
+#The stochastic part of the model. 
 #Randomly choose a given class given probabilites for each class
 def stochastic_predict(prob_matrix, classes):
     pred=np.zeros(prob_matrix.shape[0])
@@ -168,19 +166,6 @@ def stochastic_predict(prob_matrix, classes):
         pred[row] = np.random.choice(classes, p=prob_matrix[row,])
     return(pred)
 
-
-#######G##############################################################################
-#Print cross classification report using 25% of data as hold out
-def cross_validate(X,y, **model_params):
-    ss=StratifiedShuffleSplit(y, n_iter=1, test_size=0.25, random_state=1)
-    #scores=cross_val_score(clf, X, y, scoring='f1', cv=ss)
-    trainCV, testCV = next(iter(ss))
-    X_train, X_test, y_train, y_test = X[trainCV], X[testCV], y[trainCV], y[testCV]
-
-    model=DecisionTreeClassifier(random_state=1, **model_params)
-    model.fit(X,y)
-    y_pred=model.predict(X_test)
-    print(classification_report(y_test, y_pred))
 
 #####################################################################################
 #Draw side by side image of actual and prediction for all years
@@ -209,6 +194,16 @@ def write_all_rasters(actual, prediction, years, template):
     for i, year in enumerate(years):
         write_array(template, prediction[:,:,i], './results/mpb_prediction_'+str(year)+'.tif')
         write_array(template, actual[:,:,i], './results/mpb_actual_'+str(year)+'.tif')
+
+#####################################################################################
+#Get kappa values for each year
+from sklearn.metrics import cohen_kappa_score
+def get_kappas(actual, prediction, years):
+    actual=np.digitize(np.log1p(actual), treeDeathBins)
+    size=actual.shape[0]*actual.shape[1]
+    for i_year, year in enumerate(years):
+        print(year, cohen_kappa_score(actual[:,:,i_year].reshape(size), prediction[:,:,i_year].reshape(size)))
+
 
 #####################################################################################
 #Calculate the percentages of all classes within each actual and predicted images in each year
@@ -240,32 +235,13 @@ def get_percentages(actual, prediction, years):
 
     #These are 2d arrays (cols: classes * rows: years), that give the percentage of pixels in each class in each year.
     return(pd.DataFrame(df))
+
 #####################################################################################
-#Create bar graph of percentages of each class in each year's prediction and actual
-def create_bar_graph(pct, years, classes):
-    actual, predicted=pct
-    num_years=len(years)
-
-    f, ax = plt.subplots(1, figsize=(10, num_years))
-
-    bar_width=0.5
-    bar_left_edges=np.arange(1, num_years+1, 0.5).tolist()
-
-    ax.bar(left=bar_left_edges[1::2], height=actual[:,0], color='red', label='prediction', width=bar_width)
-    ax.bar(left=bar_left_edges[0::2], height=predicted[:,0], color='blue', label='prediction', width=bar_width)
-
-    for c in range(1, len(classes)):
-        ax.bar(left=bar_left_edges[1::2], height=actual[:,c], bottom=actual[:,c-1], color='red', label='prediction', width=bar_width)
-        ax.bar(left=bar_left_edges[0::2], height=predicted[:,c], bottom=predicted[:,c-1], color='blue', label='prediction', width=bar_width)
+#Start doing stuff here. 
 
 
-    plt.show()
-#####################################################################################
-
-#print(cross_validate(X.values,y, **optimized_params))
 full_model=model_object(X,y, **optimized_params)
-#create_tree_diagram(full_model, X_feature_names)
-#exit()
+create_tree_diagram(full_model, X_feature_names)
 
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
@@ -274,6 +250,7 @@ import matplotlib.cm as cmx
 #used to write rasters that were modified using numpy arrays
 template=gdal.Open(testingFolder+'tree_cover.tif', GA_ReadOnly)
 
+#Inital conditions from 2005
 prediction=np.digitize(np.log1p(gdalnumeric.LoadFile(testingFolder+'mpb_2005.tif')), treeDeathBins)
 area_shape=prediction.shape
 
@@ -285,13 +262,13 @@ all_years_predictions=np.zeros((area_shape[0], area_shape[1], len(year_list)))
 all_years_actual=np.zeros((area_shape[0], area_shape[1], len(year_list)))
 
 
+#Run the model for the 5 years. Also save the observed data as we go along. 
 for i, year in enumerate(year_list):
-    #prediction = full_model.predict(extract_data(prediction)).reshape(area_shape)
+    #Get probabilites for all cell values for t+1. Make stochastic predictions and 
+    #convert them back into an array
     probabilites = full_model.predict_proba(extract_data(prediction))
     prediction = stochastic_predict(probabilites, full_model.classes_).reshape(area_shape)
 
-    #plt.imshow(prediction, cmap=plt.get_cmap('hot'), vmax=np.max(full_model.classes_), vmin=np.min(full_model.classes_))
-    #plt.show()
     this_year_actual=gdalnumeric.LoadFile(testingFolder+'mpb_'+str(year)+'.tif') + last_year_actual
     last_year_actual=this_year_actual
 
@@ -299,9 +276,9 @@ for i, year in enumerate(year_list):
     all_years_actual[:,:,i]=this_year_actual
 
 
-
+#Make graphs and results files with those predictions.
 draw_side_by_side(all_years_actual, all_years_predictions, year_list)
 #write_all_rasters(all_years_actual, all_years_predictions, year_list, template)
-results=get_percentages(all_years_actual, all_years_predictions, year_list)
-results.to_csv('class_percentages.csv', index=False)
-
+print(get_kappas(all_years_actual, all_years_predictions, year_list))
+pct_results=get_percentages(all_years_actual, all_years_predictions, year_list)
+pct_results.to_csv('class_percentages.csv', index=False)
