@@ -1,6 +1,5 @@
 library(dplyr)
 library(ggplot2)
-library(scales)
 library(RColorBrewer)
 
 results=read.csv('class_percentages.csv')
