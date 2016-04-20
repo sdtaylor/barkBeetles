@@ -10,7 +10,7 @@ Contents:
     this builds a decision tree model using data from bbCleanedData.csv, and applies it to the rasters in data/trainingArea/
     Outputs are:
         class_percentages.csv: landscape percentage for each class, for each year, in the model prediction and in the observations
-        modelTree.png: a diagram of the decision tree
+        modelTree.png: a diagram of the decision tree (requires graphviz installed)
         printed kappa values: yearly kappa values for prediction vs observed
         printed side by side maps: pictures of the training area model predictions and observations for each year
 
@@ -26,7 +26,17 @@ Contents:
 6. getDistances.py
     experiment for including, for each pixel, the distance to the nearest catagory i. ended up not using this. 
 
+--------------------------------------
+Required packages
+Python:
+    numpy, pandas, gdal, optunity (not needed to repeat analysis below), sklearn
 
+    if using anaconda, you just need to install gdal and optunity with the conda installer. 
+
+R:
+    dplyr, ggplot2, RColorBrewer
+
+-------------------------------------
 To repeat analysis:
 1. run extractData.py
 2. run classifier.py (prints some things to stdout and writes some results files)
