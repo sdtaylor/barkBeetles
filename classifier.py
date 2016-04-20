@@ -49,9 +49,9 @@ treeCover=np.hstack((np.zeros(treeCover.shape[0]).reshape((treeCover.shape[0],1)
 #Tune the decision tree hyperparamters. This tunes the decision tree parameters using a particle swarm
 #optimizaion that minimizes the log loss of the classification. It takes about 20 minutes to run on a
 #hipergator server with 50 cores, so don't do it on your laptop.
-import optunity
+
+#import optunity
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import log_loss
 
 def optimize_tree_parameters():
@@ -82,6 +82,7 @@ def optimize_tree_parameters():
 
     print(optimal_params)
 
+#Uncomment to get optimzed parameters. Also need to uncomment 'import optunity' above
 #optimize_tree_parameters()
 #output from runing this. 
 optimized_params={'max_features': 0.36, 'min_samples_leaf': 70, 'max_depth': 10, 'min_samples_split': 27}
@@ -244,7 +245,9 @@ def get_percentages(actual, prediction, years):
 
 
 full_model=model_object(X,y, **optimized_params)
-create_tree_diagram(full_model, X_feature_names)
+
+#Creating the tree diagram requires the graphviz program.
+#create_tree_diagram(full_model, X_feature_names)
 
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
