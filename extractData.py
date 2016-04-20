@@ -40,33 +40,20 @@ imageStack=stackImages(bbFiles)
 #so the number of dead at any time period = sum of the dead trees in all prior years
 for time in range(1,imageStack.shape[2]):
     #Value of each pixel = sum of that year plus the prior year
-    #imageStack[:,:,time]=imageStack[:,:,0:time+1].max(axis=2)
     imageStack[:,:,time]=imageStack[:,:,time-1:time+1].sum(axis=2)
 
 
-#treeDeathBins=np.array([0, 100, 250,500,750,1000,1500,2000,2500,5000,50000])
 treeDeathBins=np.array([0,1,2,3,4,5,6,7,8,9,10])
 
 imageStack=np.digitize(np.log1p(imageStack), treeDeathBins)
-
-#Sanity check for values
-#count=1
-#for row in range(1, imageStack.shape[0]-1):
-#    for col in range(1, imageStack.shape[1]-1):
-#        print(imageStack[row, col,:])
-#        count+=1
-#        if count>=5:
-#            exit()
 
 
 #The tree cover base layer. Gives percent cover of trees and makes it so the model doesn't spread
 #beetles where there are no trees. It's binned just like the trees into catagorical classes of tree cover
 treeCover=gdalnumeric.LoadFile('./data/trainingArea/tree_cover.tif')
-treeCoverBins=np.array([0,10,20,30,40,50,60,70,80,90,110])
 
-#treeCover=np.digitize(treeCover, treeCoverBins)
 
-#Extract all values
+#Extract all values into a format suitable for sklearn. 
 count=0
 data=[]
 for row in range(1, imageStack.shape[0]-1):
@@ -88,9 +75,6 @@ for row in range(1, imageStack.shape[0]-1):
                 dataThisObs['Surrounding-Cat'+str(catagory)]= np.sum(surrounding==catagory) / surroundingSize
 
             data.append(dataThisObs)
-            #count+=1
-            #if count>=500:
-            #    exit()
 
 data=pd.DataFrame(data)
 data.to_csv('bbCleanedData.csv', index=False)
