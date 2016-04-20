@@ -221,9 +221,12 @@ def get_percentages(actual, prediction, years):
         predicted_pct = predicted_pct / total_pixels
         actual_pct = actual_pct / total_pixels
 
-        #Put in catagories predicted from training area but not seen in testing area
-        while len(predicted_pct) > len(actual_pct):
+        #Put in 0's for higher catagories if they are not in the training or predicted data
+        #This happens sometimes because of the stochastic nature.
+        while len(treeDeathBins[:-1]) > len(actual_pct):
             actual_pct = np.append(actual_pct, 0)
+        while len(treeDeathBins[:-1]) > len(predicted_pct):
+            predicted_pct = np.append(predicted_pct, 0)
 
         for i_class, this_class in enumerate(treeDeathBins[:-1]):
             catagory_name=str(np.rint(np.expm1(this_class)))+' - '+str(np.rint(np.expm1(treeDeathBins[i_class+1])))
